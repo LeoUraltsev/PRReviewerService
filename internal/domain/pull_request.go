@@ -9,8 +9,8 @@ import (
 type Status string
 
 const (
-	OPEN   Status = "OPEN"
-	CLOSED Status = "CLOSED"
+	Open   Status = "OPEN"
+	Closed Status = "CLOSED"
 )
 
 type PullRequest struct {
