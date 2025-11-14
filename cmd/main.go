@@ -6,7 +6,9 @@ import (
 	"os"
 	"time"
 
+	th "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/team"
 	appmw "github.com/LeoUraltsev/PRReviewerService/internal/http/middleware"
+	ts "github.com/LeoUraltsev/PRReviewerService/internal/service/team"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -22,13 +24,13 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(appmw.ContentTypeApplicationJson)
 
+	teamService := ts.NewService()
+
+	teamHandler := th.NewHandler(teamService, teamService)
+
 	r.Route("/team", func(r chi.Router) {
-		r.Post("/add", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("add team"))
-		})
-		r.Get("/get", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("get team"))
-		})
+		r.Post("/add", teamHandler.AddingTeam)
+		r.Get("/get", teamHandler.GetTeam)
 	})
 	r.Route("/users", func(r chi.Router) {
 		r.Post("/setIsActive", func(w http.ResponseWriter, r *http.Request) {

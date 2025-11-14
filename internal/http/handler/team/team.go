@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
+	"github.com/LeoUraltsev/PRReviewerService/internal/http/handler/helper"
 	"github.com/go-chi/render"
 )
 
@@ -41,13 +42,7 @@ type team struct {
 }
 
 type responseAddTeam struct {
-	Team  team        `json:"team,omitempty"`
-	Error responseErr `json:"error,omitempty"`
-}
-
-type responseErr struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Team team `json:"team"`
 }
 
 type Handler struct {
@@ -63,45 +58,31 @@ func NewHandler(saver Saver, getter Getter) *Handler {
 }
 
 func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 
 	var t team
+
 	err := render.DecodeJSON(r.Body, &t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		render.JSON(w, r, responseAddTeam{
-			Error: responseErr{
-				Code:    incorrectData,
-				Message: "failed getting body",
-			},
-		})
-
+		render.JSON(w, r, helper.NewErrorResponse(incorrectData, "failed getting body"))
 		return
 	}
-	defer func() {
-		_ = r.Body.Close()
-	}()
 
 	teamDomain := toDomain(t)
-	err = h.saver.Save(context.Background(), teamDomain)
+	err = h.saver.Save(r.Context(), teamDomain)
 	if err != nil {
 		if errors.Is(err, domain.ErrTeamExists) {
 			w.WriteHeader(http.StatusBadRequest)
-
-			render.JSON(w, r, responseAddTeam{
-				Error: responseErr{
-					Code:    teamExists,
-					Message: fmt.Sprintf("%s already exists", t.TeamName),
-				},
-			})
+			render.JSON(w, r, helper.NewErrorResponse(
+				teamExists,
+				fmt.Sprintf("%s already exists", t.TeamName),
+			))
 			return
 		}
+
 		w.WriteHeader(http.StatusInternalServerError)
-		render.JSON(w, r, responseAddTeam{
-			Error: responseErr{
-				Code:    internalError,
-				Message: "internal server error",
-			},
-		})
+		render.JSON(w, r, helper.NewErrorResponse(internalError, "internal server error"))
 		return
 	}
 
@@ -112,15 +93,10 @@ func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetTeam(w http.ResponseWriter, r *http.Request) {
-	teamName := r.Form.Get("team_name")
+	teamName := r.URL.Query().Get("team_name")
 	if teamName == "" {
 		w.WriteHeader(http.StatusNotFound)
-		render.JSON(w, r, responseAddTeam{
-			Error: responseErr{
-				Code:    notFound,
-				Message: "resource not found",
-			},
-		})
+		render.JSON(w, r, helper.NewErrorResponse(notFound, "resource not found"))
 		return
 	}
 
@@ -128,21 +104,12 @@ func (h *Handler) GetTeam(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrTeamNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			render.JSON(w, r, responseAddTeam{
-				Error: responseErr{
-					Code:    notFound,
-					Message: "resource not found",
-				},
-			})
+			render.JSON(w, r, helper.NewErrorResponse(notFound, "resource not found"))
 			return
 		}
+
 		w.WriteHeader(http.StatusInternalServerError)
-		render.JSON(w, r, responseAddTeam{
-			Error: responseErr{
-				Code:    internalError,
-				Message: "internal server error",
-			},
-		})
+		render.JSON(w, r, helper.NewErrorResponse(internalError, "internal server error"))
 		return
 	}
 
@@ -173,7 +140,9 @@ func toDomain(team team) *domain.Team {
 }
 
 func domainTo(t *domain.Team) team {
-
+	if t == nil {
+		return team{}
+	}
 	members := make([]teamMember, len(t.Members))
 	for i, member := range t.Members {
 		members[i] = teamMember{

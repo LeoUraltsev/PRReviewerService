@@ -32,7 +32,7 @@ func TestHandler_AddingTeam(t *testing.T) {
   ]
 }`))
 	w := httptest.NewRecorder()
-	h := NewHandler(m)
+	h := NewHandler(m, nil)
 
 	middleware.ContentTypeApplicationJson(http.HandlerFunc(h.AddingTeam)).ServeHTTP(w, r)
 

@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Status string
@@ -14,12 +12,16 @@ const (
 )
 
 type PullRequest struct {
-	ID                uuid.UUID
+	ID                string
 	Name              string
-	AuthorID          uuid.UUID
+	AuthorID          string
 	Status            Status
-	AssignedReviewers []uuid.UUID
+	AssignedReviewers []string
 	NeedMoreReviewers bool
 	CreatedAt         time.Time
 	MergedAt          time.Time
+}
+
+func (s Status) String() string {
+	return string(s)
 }
