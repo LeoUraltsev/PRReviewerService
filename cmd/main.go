@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	appmw "github.com/LeoUraltsev/PRReviewerService/internal/http/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -19,6 +20,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
+	r.Use(appmw.ContentTypeApplicationJson)
 
 	r.Route("/team", func(r chi.Router) {
 		r.Post("/add", func(w http.ResponseWriter, r *http.Request) {

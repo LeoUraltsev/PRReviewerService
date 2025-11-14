@@ -19,10 +19,15 @@ var (
 	notFound      = "NOT_FOUND"
 	teamExists    = "TEAM_EXISTS"
 	incorrectData = "INCORRECT_DATA"
+	internalError = "INTERNAL_ERROR"
 )
 
 type Saver interface {
 	Save(ctx context.Context, team *domain.Team) error
+}
+
+type Getter interface {
+	Get(ctx context.Context, teamName string) (*domain.Team, error)
 }
 
 type teamMember struct {
@@ -46,23 +51,23 @@ type responseErr struct {
 }
 
 type Handler struct {
-	saver Saver
+	saver  Saver
+	getter Getter
 }
 
-func NewHandler(saver Saver) *Handler {
+func NewHandler(saver Saver, getter Getter) *Handler {
 	return &Handler{
-		saver: saver,
+		saver:  saver,
+		getter: getter,
 	}
 }
 
 func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 
 	var t team
 	err := render.DecodeJSON(r.Body, &t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-
 		render.JSON(w, r, responseAddTeam{
 			Error: responseErr{
 				Code:    incorrectData,
@@ -91,18 +96,64 @@ func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, responseAddTeam{
+			Error: responseErr{
+				Code:    internalError,
+				Message: "internal server error",
+			},
+		})
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-
+	render.JSON(w, r, responseAddTeam{
+		Team: t,
+	})
 }
 
 func (h *Handler) GetTeam(w http.ResponseWriter, r *http.Request) {
+	teamName := r.Form.Get("team_name")
+	if teamName == "" {
+		w.WriteHeader(http.StatusNotFound)
+		render.JSON(w, r, responseAddTeam{
+			Error: responseErr{
+				Code:    notFound,
+				Message: "resource not found",
+			},
+		})
+		return
+	}
 
+	teamDomain, err := h.getter.Get(r.Context(), teamName)
+	if err != nil {
+		if errors.Is(err, domain.ErrTeamNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, responseAddTeam{
+				Error: responseErr{
+					Code:    notFound,
+					Message: "resource not found",
+				},
+			})
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, responseAddTeam{
+			Error: responseErr{
+				Code:    internalError,
+				Message: "internal server error",
+			},
+		})
+		return
+	}
+
+	t := domainTo(teamDomain)
+
+	w.WriteHeader(http.StatusOK)
+	render.JSON(w, r, responseAddTeam{
+		Team: t,
+	})
 }
 
-// todo: добавить обработку ошибок перед сдачей: deadline - 16.11.2025
 func toDomain(team team) *domain.Team {
 	m := make([]domain.User, len(team.Members))
 
@@ -119,4 +170,22 @@ func toDomain(team team) *domain.Team {
 		TeamName: team.TeamName,
 		Members:  m,
 	}
+}
+
+func domainTo(t *domain.Team) team {
+
+	members := make([]teamMember, len(t.Members))
+	for i, member := range t.Members {
+		members[i] = teamMember{
+			UserId:   member.UserID,
+			Username: member.Username,
+			IsActive: member.IsActive,
+		}
+	}
+
+	return team{
+		TeamName: t.TeamName,
+		Members:  members,
+	}
+
 }

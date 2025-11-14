@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	mocks_team "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/team/mocks"
+	"github.com/LeoUraltsev/PRReviewerService/internal/http/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -32,7 +33,8 @@ func TestHandler_AddingTeam(t *testing.T) {
 }`))
 	w := httptest.NewRecorder()
 	h := NewHandler(m)
-	h.AddingTeam(w, r)
+
+	middleware.ContentTypeApplicationJson(http.HandlerFunc(h.AddingTeam)).ServeHTTP(w, r)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
