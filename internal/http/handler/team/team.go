@@ -8,7 +8,6 @@ import (
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
 	"github.com/go-chi/render"
-	"github.com/google/uuid"
 )
 
 /*
@@ -94,6 +93,7 @@ func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
 
 }
@@ -108,7 +108,7 @@ func toDomain(team team) *domain.Team {
 
 	for i, member := range team.Members {
 		m[i] = domain.User{
-			UserID:   uuid.MustParse(member.UserId),
+			UserID:   member.UserId,
 			Username: member.Username,
 			TeamName: team.TeamName,
 			IsActive: member.IsActive,
