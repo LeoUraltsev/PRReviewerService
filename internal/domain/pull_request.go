@@ -1,7 +1,14 @@
 package domain
 
 import (
+	"errors"
 	"time"
+)
+
+var (
+	ErrPRNotFound       = errors.New("pr not found")
+	ErrPRAlreadyExists  = errors.New("pr already exists")
+	ErrReassignPRMerged = errors.New("cannot reassign on merged PR")
 )
 
 type Status string

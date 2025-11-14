@@ -2,10 +2,11 @@ package user
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
-	"github.com/LeoUraltsev/PRReviewerService/internal/http/handler/helper"
+	e "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/helper/err"
 	"github.com/go-chi/render"
 )
 
@@ -57,7 +58,6 @@ func NewHandler(updater Updater, getter Getter) *Handler {
 	}
 }
 
-// todo: обработка всех ошибок
 func (h *Handler) SetIsActive(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -65,13 +65,18 @@ func (h *Handler) SetIsActive(w http.ResponseWriter, r *http.Request) {
 	err := render.DecodeJSON(r.Body, &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		render.JSON(w, r, helper.NewErrorResponse("INCORRECT_DATA", "failed getting body"))
+		render.JSON(w, r, e.IncorrectDataError())
 	}
 
 	u, err := h.updater.UpdateIsActive(r.Context(), req.UserId, req.IsActive)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrIncorrectAdminToken) {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, e.NotFoundError())
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
-		render.JSON(w, r, helper.NewErrorResponse("INTERNAL_ERROR", "internal server error"))
+		render.JSON(w, r, e.InternalServerError())
 	}
 
 	resp := isActiveResponse{
@@ -85,14 +90,13 @@ func (h *Handler) SetIsActive(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		render.JSON(w, r, helper.NewErrorResponse("NO_USER_ID", "no user id"))
+		return
 	}
 
 	prDomain, err := h.getter.GetUserPullRequest(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		render.JSON(w, r, helper.NewErrorResponse("INTERNAL_ERROR", "internal server error"))
+		render.JSON(w, r, e.InternalServerError())
 	}
 
 	pr := make([]smallPullRequests, len(prDomain))

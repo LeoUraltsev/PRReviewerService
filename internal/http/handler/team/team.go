@@ -3,24 +3,11 @@ package team
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
-	"github.com/LeoUraltsev/PRReviewerService/internal/http/handler/helper"
+	e "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/helper/err"
 	"github.com/go-chi/render"
-)
-
-/*
-POST /team/add
-GET  /team/get
-*/
-
-var (
-	notFound      = "NOT_FOUND"
-	teamExists    = "TEAM_EXISTS"
-	incorrectData = "INCORRECT_DATA"
-	internalError = "INTERNAL_ERROR"
 )
 
 type Saver interface {
@@ -65,7 +52,7 @@ func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
 	err := render.DecodeJSON(r.Body, &t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		render.JSON(w, r, helper.NewErrorResponse(incorrectData, "failed getting body"))
+		render.JSON(w, r, e.IncorrectDataError())
 		return
 	}
 
@@ -74,15 +61,12 @@ func (h *Handler) AddingTeam(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrTeamExists) {
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, helper.NewErrorResponse(
-				teamExists,
-				fmt.Sprintf("%s already exists", t.TeamName),
-			))
+			render.JSON(w, r, e.TeamExistsError())
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		render.JSON(w, r, helper.NewErrorResponse(internalError, "internal server error"))
+		render.JSON(w, r, e.InternalServerError())
 		return
 	}
 
@@ -96,7 +80,7 @@ func (h *Handler) GetTeam(w http.ResponseWriter, r *http.Request) {
 	teamName := r.URL.Query().Get("team_name")
 	if teamName == "" {
 		w.WriteHeader(http.StatusNotFound)
-		render.JSON(w, r, helper.NewErrorResponse(notFound, "resource not found"))
+		render.JSON(w, r, e.NotFoundError())
 		return
 	}
 
@@ -104,12 +88,12 @@ func (h *Handler) GetTeam(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrTeamNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			render.JSON(w, r, helper.NewErrorResponse(notFound, "resource not found"))
+			render.JSON(w, r, e.NotFoundError())
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		render.JSON(w, r, helper.NewErrorResponse(internalError, "internal server error"))
+		render.JSON(w, r, e.InternalServerError())
 		return
 	}
 

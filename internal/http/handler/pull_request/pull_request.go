@@ -2,10 +2,12 @@ package pull_request
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
+	e "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/helper/err"
 	"github.com/go-chi/render"
 )
 
@@ -74,12 +76,26 @@ func (h *Handler) CreatePullRequest(w http.ResponseWriter, r *http.Request) {
 	err := render.DecodeJSON(r.Body, &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		render.JSON(w, r, e.IncorrectDataError())
 		return
 	}
 
 	prDomain, err := h.saver.SavePullRequest(r.Context(), req.PullRequestId, req.PullRequestName, req.AuthorId)
 	if err != nil {
+		if errors.Is(err, domain.ErrPRNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, e.NotFoundError())
+			return
+		}
+
+		if errors.Is(err, domain.ErrPRAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+			render.JSON(w, r, e.PRExistsError())
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, e.InternalServerError())
 		return
 	}
 
@@ -97,11 +113,18 @@ func (h *Handler) MergePullRequest(w http.ResponseWriter, r *http.Request) {
 	err := render.DecodeJSON(r.Body, &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		render.JSON(w, r, e.IncorrectDataError())
 		return
 	}
 
 	prDomain, err := h.updater.MergePullRequest(r.Context(), req.PullRequestId)
 	if err != nil {
+		if errors.Is(err, domain.ErrPRNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, e.NotFoundError())
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -122,12 +145,26 @@ func (h *Handler) ReassignPullRequest(w http.ResponseWriter, r *http.Request) {
 	err := render.DecodeJSON(r.Body, &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		render.JSON(w, r, e.IncorrectDataError())
 		return
 	}
 
 	prDomain, err := h.updater.ReassignReviewerPullRequest(r.Context(), req.PullRequestId, req.OldReviewerId)
 	if err != nil {
+		if errors.Is(err, domain.ErrPRNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, e.NotFoundError())
+			return
+		}
+
+		if errors.Is(err, domain.ErrReassignPRMerged) {
+			w.WriteHeader(http.StatusConflict)
+			render.JSON(w, r, e.PRMergedError())
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, e.InternalServerError())
 		return
 	}
 

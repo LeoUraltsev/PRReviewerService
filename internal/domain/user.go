@@ -1,5 +1,12 @@
 package domain
 
+import "errors"
+
+var (
+	ErrUserNotFound        = errors.New("user not found")
+	ErrIncorrectAdminToken = errors.New("incorrect admin token")
+)
+
 type User struct {
 	UserID   string
 	Username string
