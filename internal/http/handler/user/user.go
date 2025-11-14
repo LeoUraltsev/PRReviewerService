@@ -50,9 +50,10 @@ type Handler struct {
 	getter  Getter
 }
 
-func NewHandler(updater Updater) *Handler {
+func NewHandler(updater Updater, getter Getter) *Handler {
 	return &Handler{
 		updater: updater,
+		getter:  getter,
 	}
 }
 

@@ -7,8 +7,10 @@ import (
 	"time"
 
 	th "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/team"
+	uh "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/user"
 	appmw "github.com/LeoUraltsev/PRReviewerService/internal/http/middleware"
 	ts "github.com/LeoUraltsev/PRReviewerService/internal/service/team"
+	us "github.com/LeoUraltsev/PRReviewerService/internal/service/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -25,20 +27,18 @@ func main() {
 	r.Use(appmw.ContentTypeApplicationJson)
 
 	teamService := ts.NewService()
+	userService := us.NewService()
 
 	teamHandler := th.NewHandler(teamService, teamService)
+	userHandler := uh.NewHandler(userService, userService)
 
 	r.Route("/team", func(r chi.Router) {
 		r.Post("/add", teamHandler.AddingTeam)
 		r.Get("/get", teamHandler.GetTeam)
 	})
 	r.Route("/users", func(r chi.Router) {
-		r.Post("/setIsActive", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("set isActive"))
-		})
-		r.Post("/getReview", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("get review"))
-		})
+		r.Post("/setIsActive", userHandler.SetIsActive)
+		r.Get("/getReview", userHandler.GetReview)
 	})
 	r.Route("/pullRequest", func(r chi.Router) {
 		r.Post("/create", func(w http.ResponseWriter, r *http.Request) {
