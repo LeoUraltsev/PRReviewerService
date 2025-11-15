@@ -13,3 +13,7 @@ type User struct {
 	TeamName string
 	IsActive bool
 }
+
+func (u *User) ChangeActive(active bool) {
+	u.IsActive = active
+}

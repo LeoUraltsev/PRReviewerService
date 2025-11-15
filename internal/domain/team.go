@@ -9,5 +9,5 @@ var (
 
 type Team struct {
 	TeamName string
-	Members  []User
+	Members  []*User
 }

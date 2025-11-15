@@ -2,41 +2,51 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
 )
 
+//todo: логирование
+
+type RepoPR interface {
+	GetPRByUserID(ctx context.Context, userID string) ([]*domain.PullRequest, error)
+}
+
+type RepoUsers interface {
+	CheckExists(ctx context.Context, userID string) error
+	UpdateActive(ctx context.Context, userID string, active bool) (*domain.User, error)
+}
+
 type Service struct {
+	repoUsers RepoUsers
+	repoPR    RepoPR
 }
 
-func NewService() *Service {
-	return &Service{}
+func NewService(pr RepoPR, users RepoUsers) *Service {
+	return &Service{
+		repoPR:    pr,
+		repoUsers: users,
+	}
 }
 
-func (s Service) GetUserPullRequest(ctx context.Context, userId string) ([]*domain.PullRequest, error) {
-	fmt.Println(userId)
-	return []*domain.PullRequest{
-		{
-			ID:                "1",
-			Name:              "Name 1",
-			AuthorID:          "asdasd",
-			Status:            domain.Open,
-			AssignedReviewers: nil,
-			NeedMoreReviewers: false,
-			CreatedAt:         time.Time{},
-			MergedAt:          time.Time{},
-		},
-	}, nil
+func (s *Service) GetUserPullRequest(ctx context.Context, userId string) ([]*domain.PullRequest, error) {
+	err := s.repoUsers.CheckExists(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, err := s.repoPR.GetPRByUserID(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return pr, nil
 }
 
-func (s Service) UpdateIsActive(ctx context.Context, userId string, isActive bool) (*domain.User, error) {
-	fmt.Println(userId, isActive)
-	return &domain.User{
-		UserID:   "1",
-		Username: "Name 1",
-		TeamName: "Team",
-		IsActive: false,
-	}, nil
+func (s *Service) UpdateIsActive(ctx context.Context, userId string, isActive bool) (*domain.User, error) {
+	user, err := s.repoUsers.UpdateActive(ctx, userId, isActive)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

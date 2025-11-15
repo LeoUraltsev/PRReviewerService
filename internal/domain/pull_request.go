@@ -32,3 +32,7 @@ type PullRequest struct {
 func (s Status) String() string {
 	return string(s)
 }
+
+func (p *PullRequest) ChangeStatus(status Status) {
+	p.Status = status
+}

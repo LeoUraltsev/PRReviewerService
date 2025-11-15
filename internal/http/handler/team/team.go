@@ -106,10 +106,10 @@ func (h *Handler) GetTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func toDomain(team team) *domain.Team {
-	m := make([]domain.User, len(team.Members))
+	m := make([]*domain.User, len(team.Members))
 
 	for i, member := range team.Members {
-		m[i] = domain.User{
+		m[i] = &domain.User{
 			UserID:   member.UserId,
 			Username: member.Username,
 			TeamName: team.TeamName,

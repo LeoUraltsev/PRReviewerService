@@ -2,33 +2,37 @@ package pg
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/LeoUraltsev/PRReviewerService/internal/domain"
 )
 
-func (s *Storage) SaveTeam(ctx context.Context) error {
+type member struct {
+	ID       string
+	Username string
+	TeamName string
+	IsActive bool
+}
+
+func (s *Storage) SaveTeam(ctx context.Context, name string) error {
+
+	q := `insert into teams (name) values ($1)`
+
+	_, err := s.db.Exec(ctx, q, name)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *Storage) GetTeamByNameWithMember(ctx context.Context, name string) (*domain.Team, error) {
-	s.log.Info("getting team by name", slog.String("name", name))
-
-	q := `SELECT user_id, user_name, team_name, is_active FROM team JOIN users ON team.name = users.team_name WHERE team.name = $1;`
-
-	rows, err := s.db.Query(ctx, q, name)
+func (s *Storage) GetTeam(ctx context.Context, name string) (*domain.Team, error) {
+	q := `select name from teams where name = $1`
+	row := s.db.QueryRow(ctx, q, name)
+	err := row.Scan(&name)
 	if err != nil {
-		s.log.Info("error getting team by name", slog.String("name", name), slog.String("err", err.Error()))
 		return nil, err
 	}
-	defer rows.Close()
-
-	for rows.Next() {
-		rows.Scan()
-	}
-
 	return &domain.Team{
-		TeamName: "",
+		TeamName: name,
 	}, nil
 }
