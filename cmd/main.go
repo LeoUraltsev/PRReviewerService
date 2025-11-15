@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/LeoUraltsev/PRReviewerService/internal/http/handler/pull_request"
 	th "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/team"
 	uh "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/user"
 	appmw "github.com/LeoUraltsev/PRReviewerService/internal/http/middleware"
+	pr "github.com/LeoUraltsev/PRReviewerService/internal/service/pull_request"
 	ts "github.com/LeoUraltsev/PRReviewerService/internal/service/team"
 	us "github.com/LeoUraltsev/PRReviewerService/internal/service/user"
+	"github.com/LeoUraltsev/PRReviewerService/internal/storage/pg"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -21,16 +26,27 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 
+	ctx := context.Background()
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(appmw.ContentTypeApplicationJson)
 
+	s, err := pg.NewStorage(ctx, log)
+	if err != nil {
+		fmt.Printf("Stopping application: %v\n", err)
+		os.Exit(1)
+	}
+	defer s.Close(ctx)
+
 	teamService := ts.NewService()
 	userService := us.NewService()
+	prService := pr.NewService()
 
 	teamHandler := th.NewHandler(teamService, teamService)
 	userHandler := uh.NewHandler(userService, userService)
+	prHandler := pull_request.NewHandler(prService, prService)
 
 	r.Route("/team", func(r chi.Router) {
 		r.Post("/add", teamHandler.AddingTeam)
@@ -41,15 +57,9 @@ func main() {
 		r.Get("/getReview", userHandler.GetReview)
 	})
 	r.Route("/pullRequest", func(r chi.Router) {
-		r.Post("/create", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("create pull request"))
-		})
-		r.Post("/merge", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("merge pull request"))
-		})
-		r.Post("/reassign", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("reassign pull request"))
-		})
+		r.Post("/create", prHandler.CreatePullRequest)
+		r.Post("/merge", prHandler.MergePullRequest)
+		r.Post("/reassign", prHandler.ReassignPullRequest)
 	})
 
 	server := http.Server{

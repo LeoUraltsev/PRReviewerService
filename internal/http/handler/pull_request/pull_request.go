@@ -62,7 +62,7 @@ type Handler struct {
 	updater Updater
 }
 
-func New(saver Saver, updater Updater) *Handler {
+func NewHandler(saver Saver, updater Updater) *Handler {
 	return &Handler{
 		saver:   saver,
 		updater: updater,

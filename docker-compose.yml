@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: database
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  goose:
+    build: ./migrations/
+    environment:
+      GOOSE_DBSTRING: postgres://postgres:password@postgres:5432/database
+    depends_on:
+      postgres:
+        condition: service_started
+
+volumes:
+  postgres_data:
+
+networks:
+  postgres:
+    driver: bridge
