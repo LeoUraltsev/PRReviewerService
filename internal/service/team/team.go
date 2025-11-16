@@ -8,11 +8,11 @@ import (
 
 type RepoTeam interface {
 	Save(ctx context.Context, teamName string) error
-	CheckTeam(ctx context.Context, teamName string) error
+	CheckExistsTeam(ctx context.Context, teamName string) (bool, error)
 }
 
 type RepoUser interface {
-	SaveBatch(ctx context.Context, user []*domain.User) error
+	SaveUsers(ctx context.Context, user []*domain.User) error
 	GetUsersByTeamName(ctx context.Context, teamName string) ([]*domain.User, error)
 }
 
@@ -29,13 +29,13 @@ func NewService(user RepoUser, team RepoTeam) *Service {
 }
 
 // todo: объеденить в транзакцию
-func (s Service) Save(ctx context.Context, team *domain.Team) error {
+func (s *Service) Save(ctx context.Context, team *domain.Team) error {
 	err := s.repo.Save(ctx, team.TeamName)
 	if err != nil {
 		return err
 	}
 
-	err = s.repoUser.SaveBatch(ctx, team.Members)
+	err = s.repoUser.SaveUsers(ctx, team.Members)
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,14 @@ func (s Service) Save(ctx context.Context, team *domain.Team) error {
 	return nil
 }
 
-func (s Service) Get(ctx context.Context, teamName string) (*domain.Team, error) {
-	err := s.repo.CheckTeam(ctx, teamName)
+func (s *Service) Get(ctx context.Context, teamName string) (*domain.Team, error) {
+	exists, err := s.repo.CheckExistsTeam(ctx, teamName)
 	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		return nil, domain.ErrTeamNotFound
 	}
 
 	members, err := s.repoUser.GetUsersByTeamName(ctx, teamName)

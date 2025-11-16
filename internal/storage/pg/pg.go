@@ -16,8 +16,8 @@ var (
 )
 
 type Storage struct {
-	db  *pgxpool.Pool
-	log *slog.Logger
+	Pool *pgxpool.Pool
+	log  *slog.Logger
 }
 
 func NewStorage(ctx context.Context, log *slog.Logger) (*Storage, error) {
@@ -36,7 +36,7 @@ func NewStorage(ctx context.Context, log *slog.Logger) (*Storage, error) {
 		return nil, fmt.Errorf("failed create pool: %v", err)
 	}
 
-	s := &Storage{db: pool, log: log}
+	s := &Storage{Pool: pool, log: log}
 
 	err = s.checkConnection(ctx)
 	if err != nil {
@@ -46,12 +46,12 @@ func NewStorage(ctx context.Context, log *slog.Logger) (*Storage, error) {
 }
 
 func (s *Storage) Close(ctx context.Context) error {
-	s.db.Close()
+	s.Pool.Close()
 	return nil
 }
 
 func (s *Storage) Ping(ctx context.Context) error {
-	err := s.db.Ping(ctx)
+	err := s.Pool.Ping(ctx)
 	if err != nil {
 		s.log.Warn("failed ping to postgres", "err", err)
 		return fmt.Errorf("failed ping to postgres: %v", err)

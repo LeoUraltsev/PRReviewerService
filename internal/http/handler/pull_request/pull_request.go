@@ -44,7 +44,7 @@ type mergedPRRequest struct {
 
 type mergedPRResponse struct {
 	PullRequest pullRequest `json:"pr"`
-	MergedAt    time.Time   `json:"mergedAt"`
+	MergedAt    *time.Time  `json:"mergedAt"`
 }
 
 type reassignPRRequest struct {
@@ -82,7 +82,7 @@ func (h *Handler) CreatePullRequest(w http.ResponseWriter, r *http.Request) {
 
 	prDomain, err := h.saver.SavePullRequest(r.Context(), req.PullRequestId, req.PullRequestName, req.AuthorId)
 	if err != nil {
-		if errors.Is(err, domain.ErrPRNotFound) {
+		if errors.Is(err, domain.ErrPRNotFound) || errors.Is(err, domain.ErrUserNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			render.JSON(w, r, e.NotFoundError())
 			return
@@ -131,7 +131,7 @@ func (h *Handler) MergePullRequest(w http.ResponseWriter, r *http.Request) {
 
 	mergedAt := prDomain.MergedAt
 	pr := domainToPullRequest(prDomain)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	render.JSON(w, r, mergedPRResponse{
 		PullRequest: pr,
 		MergedAt:    mergedAt,
@@ -169,7 +169,7 @@ func (h *Handler) ReassignPullRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pr := domainToPullRequest(prDomain)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	render.JSON(w, r, reassignPRResponse{
 		PullRequest: pr,
 		ReplacedBy:  req.OldReviewerId,

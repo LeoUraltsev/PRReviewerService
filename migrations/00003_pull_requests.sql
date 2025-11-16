@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE Type status_enum as ENUM ('CLOSED','OPEN');
+CREATE Type status_enum as ENUM ('MERGED','OPEN');
 
 CREATE TABLE IF NOT EXISTS pull_requests(
     id text unique not null ,

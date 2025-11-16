@@ -15,7 +15,7 @@ type Status string
 
 const (
 	Open   Status = "OPEN"
-	Closed Status = "CLOSED"
+	Merged Status = "MERGED"
 )
 
 type PullRequest struct {
@@ -26,7 +26,7 @@ type PullRequest struct {
 	AssignedReviewers []string
 	NeedMoreReviewers bool
 	CreatedAt         time.Time
-	MergedAt          time.Time
+	MergedAt          *time.Time
 }
 
 func (s Status) String() string {

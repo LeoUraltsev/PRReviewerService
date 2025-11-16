@@ -16,6 +16,9 @@ import (
 	ts "github.com/LeoUraltsev/PRReviewerService/internal/service/team"
 	us "github.com/LeoUraltsev/PRReviewerService/internal/service/user"
 	"github.com/LeoUraltsev/PRReviewerService/internal/storage/pg"
+	pullStorage "github.com/LeoUraltsev/PRReviewerService/internal/storage/pg/pull_request"
+	teamStorage "github.com/LeoUraltsev/PRReviewerService/internal/storage/pg/team"
+	userStorage "github.com/LeoUraltsev/PRReviewerService/internal/storage/pg/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -40,9 +43,13 @@ func main() {
 	}
 	defer s.Close(ctx)
 
-	teamService := ts.NewService()
-	userService := us.NewService()
-	prService := pr.NewService()
+	prStorage := pullStorage.NewStorage(log, s.Pool)
+	tStorage := teamStorage.NewStorage(log, s.Pool)
+	uStorage := userStorage.NewStorage(log, s.Pool)
+
+	teamService := ts.NewService(uStorage, tStorage)
+	userService := us.NewService(prStorage, uStorage)
+	prService := pr.NewService(prStorage, uStorage)
 
 	teamHandler := th.NewHandler(teamService, teamService)
 	userHandler := uh.NewHandler(userService, userService)

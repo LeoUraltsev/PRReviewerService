@@ -14,7 +14,7 @@ type RepoPR interface {
 
 type RepoUsers interface {
 	CheckExists(ctx context.Context, userID string) error
-	UpdateActive(ctx context.Context, userID string, active bool) (*domain.User, error)
+	UpdateIsActive(ctx context.Context, userID string, active bool) (*domain.User, error)
 }
 
 type Service struct {
@@ -44,7 +44,7 @@ func (s *Service) GetUserPullRequest(ctx context.Context, userId string) ([]*dom
 }
 
 func (s *Service) UpdateIsActive(ctx context.Context, userId string, isActive bool) (*domain.User, error) {
-	user, err := s.repoUsers.UpdateActive(ctx, userId, isActive)
+	user, err := s.repoUsers.UpdateIsActive(ctx, userId, isActive)
 	if err != nil {
 		return nil, err
 	}

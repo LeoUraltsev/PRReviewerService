@@ -66,6 +66,7 @@ func (h *Handler) SetIsActive(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		render.JSON(w, r, e.IncorrectDataError())
+		return
 	}
 
 	u, err := h.updater.UpdateIsActive(r.Context(), req.UserId, req.IsActive)
@@ -77,6 +78,7 @@ func (h *Handler) SetIsActive(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, e.InternalServerError())
+		return
 	}
 
 	resp := isActiveResponse{
@@ -90,13 +92,21 @@ func (h *Handler) SetIsActive(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		render.JSON(w, r, e.IncorrectDataError())
 		return
 	}
 
 	prDomain, err := h.getter.GetUserPullRequest(r.Context(), userID)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, e.NotFoundError())
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, e.InternalServerError())
+		return
 	}
 
 	pr := make([]smallPullRequests, len(prDomain))
