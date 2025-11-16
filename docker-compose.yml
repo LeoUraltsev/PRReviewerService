@@ -24,7 +24,7 @@ services:
       GOOSE_DBSTRING: ${GOOSE_DBSTRING}
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
     networks:
       - app-network
 
