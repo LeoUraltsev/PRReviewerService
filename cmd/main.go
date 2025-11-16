@@ -70,7 +70,7 @@ func main() {
 	})
 
 	server := http.Server{
-		Addr:              "localhost:8080",
+		Addr:              ":8080",
 		Handler:           r,
 		ReadTimeout:       5 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
