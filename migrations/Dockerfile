@@ -15,6 +15,5 @@ RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 COPY . .
 
 ENV GOOSE_DRIVER=postgres
-ENV GOOSE_DBSTRING=postgres://postgres:password@postgres:5432/database
 
 CMD ["goose", "up"]

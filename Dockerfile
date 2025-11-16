@@ -19,6 +19,4 @@ COPY --from=builder /app/pr-reviewer-service .
 
 EXPOSE 8080
 
-ENV POSTGRES_PR_CONNECTION_STRING=postgres://postgres:password@postgres:5432/database
-
 CMD ["./pr-reviewer-service"]

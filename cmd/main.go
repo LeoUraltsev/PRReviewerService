@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/LeoUraltsev/PRReviewerService/internal/config"
 	"github.com/LeoUraltsev/PRReviewerService/internal/http/handler/pull_request"
 	th "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/team"
 	uh "github.com/LeoUraltsev/PRReviewerService/internal/http/handler/user"
@@ -25,23 +27,28 @@ import (
 
 func main() {
 
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level: cfg.LogLever,
 	}))
 
 	ctx := context.Background()
+
+	s, err := pg.NewStorage(ctx, log, cfg)
+	defer s.Close(ctx)
+	if err != nil {
+		fmt.Printf("Stopping application: %v\n", err)
+		os.Exit(1)
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(appmw.ContentTypeApplicationJson)
-
-	s, err := pg.NewStorage(ctx, log)
-	if err != nil {
-		fmt.Printf("Stopping application: %v\n", err)
-		os.Exit(1)
-	}
-	defer s.Close(ctx)
 
 	prStorage := pullStorage.NewStorage(log, s.Pool)
 	tStorage := teamStorage.NewStorage(log, s.Pool)
@@ -70,17 +77,17 @@ func main() {
 	})
 
 	server := http.Server{
-		Addr:              ":8080",
+		Addr:              fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
 		Handler:           r,
-		ReadTimeout:       5 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      5 * time.Second,
-		IdleTimeout:       5 * time.Second,
+		ReadTimeout:       cfg.ReadTimeout * time.Second,
+		ReadHeaderTimeout: cfg.ReadHeaderTimeout * time.Second,
+		WriteTimeout:      cfg.WriteTimeout * time.Second,
+		IdleTimeout:       cfg.IdleTimeout * time.Second,
 	}
 	log.Info("starting server")
 
-	if err := server.ListenAndServe(); err != nil {
-		slog.Error("failed to start server", err)
+	if err = server.ListenAndServe(); err != nil {
+		slog.Error("failed to start server", slog.String("error", err.Error()))
 	}
 
 }

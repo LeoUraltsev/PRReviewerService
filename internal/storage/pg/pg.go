@@ -2,41 +2,38 @@ package pg
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
+	"github.com/LeoUraltsev/PRReviewerService/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
-)
-
-var (
-	ErrNoConnectionStringENV = errors.New("ENV: POSTGRES_PR_CONNECTION_STRING not found")
 )
 
 type Storage struct {
 	Pool *pgxpool.Pool
 	log  *slog.Logger
+	cfg  *config.Config
 }
 
-func NewStorage(ctx context.Context, log *slog.Logger) (*Storage, error) {
-	conn := os.Getenv("POSTGRES_PR_CONNECTION_STRING")
-	if conn == "" {
-		return nil, ErrNoConnectionStringENV
-	}
+func NewStorage(ctx context.Context, log *slog.Logger, cfg *config.Config) (*Storage, error) {
+	conn := cfg.ConnectionString
 
-	cfg, err := pgxpool.ParseConfig(conn)
+	pgCfg, err := pgxpool.ParseConfig(conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed parse config: %v", err)
 	}
 
-	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	pool, err := pgxpool.NewWithConfig(ctx, pgCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed create pool: %v", err)
 	}
 
-	s := &Storage{Pool: pool, log: log}
+	s := &Storage{
+		Pool: pool,
+		log:  log,
+		cfg:  cfg,
+	}
 
 	err = s.checkConnection(ctx)
 	if err != nil {
@@ -67,8 +64,8 @@ func (s *Storage) checkConnection(ctx context.Context) error {
 		return nil
 	}
 
-	idleDuration := 5 * time.Second
-	maxAttemptsRetryConnection := 3
+	idleDuration := s.cfg.RetryInterval
+	maxAttemptsRetryConnection := s.cfg.MaxRetries
 	ticker := time.NewTicker(idleDuration)
 	defer ticker.Stop()
 
