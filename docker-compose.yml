@@ -5,11 +5,11 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-database}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-database}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
   goose:
     build: ./migrations/
     environment:
-      GOOSE_DBSTRING: ${GOOSE_DBSTRING}
+      GOOSE_DBSTRING: ${GOOSE_DBSTRING:-postgres://postgres:password@postgres:5432/database?sslmode=disable}
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,18 +31,18 @@ services:
   pr_service:
     build: ./
     ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
+      - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
     environment:
-      SERVER_HOST: ${SERVER_HOST}
-      SERVER_PORT: ${SERVER_PORT}
-      SERVER_READ_TIMEOUT: ${SERVER_READ_TIMEOUT}
-      SERVER_WRITE_TIMEOUT: ${SERVER_WRITE_TIMEOUT}
-      SERVER_IDLE_TIMEOUT: ${SERVER_IDLE_TIMEOUT}
-      SERVER_READ_HEADER_TIMEOUT: ${SERVER_READ_HEADER_TIMEOUT}
-      POSTGRES_PR_CONNECTION_STRING: ${POSTGRES_PR_CONNECTION_STRING}
-      DB_MAX_RETRIES: ${DB_MAX_RETRIES}
-      DB_RETRY_INTERVAL: ${DB_RETRY_INTERVAL}
-      LOG_LEVEL: ${LOG_LEVEL}
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SERVER_READ_TIMEOUT: ${SERVER_READ_TIMEOUT:-5s}
+      SERVER_WRITE_TIMEOUT: ${SERVER_WRITE_TIMEOUT:-5s}
+      SERVER_IDLE_TIMEOUT: ${SERVER_IDLE_TIMEOUT:-5s}
+      SERVER_READ_HEADER_TIMEOUT: ${SERVER_READ_HEADER_TIMEOUT:-5s}
+      POSTGRES_PR_CONNECTION_STRING: ${POSTGRES_PR_CONNECTION_STRING:-postgres://postgres:password@postgres:5432/database?sslmode=disable}
+      DB_MAX_RETRIES: ${DB_MAX_RETRIES:-3}
+      DB_RETRY_INTERVAL: ${DB_RETRY_INTERVAL:-3s}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       postgres:
         condition: service_healthy
